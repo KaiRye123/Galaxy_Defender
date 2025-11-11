@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galaxy Defender</title>
+
+    <link rel="stylesheet" href="css/style.css">
+  </head>
+
+  <body>
+    <!-- 시작 화면 -->
+    <div id="startScreen" class="start-screen">
+      <div class="arcade-frame">
+        <div class="screen-border">
+          <h1 class="game-title">🎮GALAXY DEFENDER</h1>
+          
+          <div class="instructions">
+            <h2 class="subtitle">HOW TO PLAY</h2>
+            <div class="instruction-list">
+              <p>▶ <span class="key-hint">방향키</span>로 이동하세요!</p>
+              <p>▶ <span class="key-hint">스페이스 바</span>로 총알을 발사하여 적들을 처치하세요!</p>
+              <p>▶ 적들은 확률적으로 <span class="item-star">★공격속도</span>를 올릴 수 있는 아이템과<br>
+                 &nbsp;&nbsp;&nbsp;<span class="item-health">♥체력 회복</span> 아이템을 드랍합니다!</p>
+            </div>
+          </div>
+
+          <div class="controls">
+            <div class="language-selector">
+              <label for="languageSelect">LANGUAGE:</label>
+              <select id="languageSelect" class="arcade-select">
+                <option value="ko">한국어 (Korean)</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            
+            <button id="startButton" class="arcade-button">
+              ▶ GAME START ◀
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <canvas id="gameCanvas" width="600" height="800" style="display: none;"></canvas>
+    <script src="js/space_shooter.js"></script>
+  </body>
+</html>
