@@ -6,6 +6,10 @@ const ctx = canvas.getContext("2d");
 let gameStarted = false;
 let currentLanguage = 'ko';
 
+// 프레임 시간 관리 (프레임레이트 독립적 이동)
+let lastFrameTime = Date.now();
+let deltaTime = 0;
+
 // 언어별 텍스트
 const translations = {
   ko: {
@@ -1373,10 +1377,10 @@ function spawnItem(x, y, type = 'score') {
 }
 
 
-// ▶ 별 배경 업데이트
+// ▶ 별 배경 업데이트 - deltaTime 적용
 function updateStars() {
   for (let s of stars) {
-    s.y += s.speed;
+    s.y += s.speed * deltaTime;
     if (s.y > canvas.height) {
       s.y = 0;
       s.x = Math.random() * canvas.width;
@@ -1385,19 +1389,19 @@ function updateStars() {
 }
 
 
-// ▶ 이펙트 업데이트
+// ▶ 이펙트 업데이트 - deltaTime 적용
 function updateEffects() {
   effects.forEach(e => {
-    e.x += e.dx;
-    e.y += e.dy;
-    e.life--;
+    e.x += e.dx * deltaTime;
+    e.y += e.dy * deltaTime;
+    e.life -= deltaTime;
   });
   effects = effects.filter(e => e.life > 0);
 }
 
 
 
-// ▶ 아이템 업데이트
+// ▶ 아이템 업데이트 - deltaTime 적용
 function updateItems() {
   items.forEach(item => {
     // 플레이어와의 거리 계산
@@ -1409,14 +1413,14 @@ function updateItems() {
     const magnetRange = 100;
     
     if (distance < magnetRange && distance > 0) {
-      // 플레이어 방향으로 이동 (자석 효과)
+      // 플레이어 방향으로 이동 (자석 효과) - deltaTime 적용
       const magnetSpeed = 8;  // 흡수 속도
       const angle = Math.atan2(dy, dx);
-      item.x += Math.cos(angle) * magnetSpeed;
-      item.y += Math.sin(angle) * magnetSpeed;
+      item.x += Math.cos(angle) * magnetSpeed * deltaTime;
+      item.y += Math.sin(angle) * magnetSpeed * deltaTime;
     } else {
-      // 일반 하강
-      item.y += item.speed;
+      // 일반 하강 - deltaTime 적용
+      item.y += item.speed * deltaTime;
     }
     
     if (isColliding(item, player)) {
@@ -1470,11 +1474,11 @@ function showNotification(text, x, y, color) {
   });
 }
 
-// ▶ 알림 메시지 업데이트
+// ▶ 알림 메시지 업데이트 - deltaTime 적용
 function updateNotifications() {
   const now = Date.now();
   notifications.forEach(n => {
-    n.y -= 1.5;  // 위로 떠오름
+    n.y -= 1.5 * deltaTime;  // 위로 떠오름
     const elapsed = now - n.createdAt;
     if (elapsed > 1000) {
       n.alpha = Math.max(0, 1.0 - (elapsed - 1000) / 500);  // 1초 후 0.5초 동안 페이드아웃
@@ -1602,6 +1606,15 @@ function drawItems() {
 // ▶ 메인 게임 루프
 function update() {
   if (gameOver) return;
+  
+  // deltaTime 계산 (밀리초 → 초 단위, 60fps 기준으로 정규화)
+  const currentFrameTime = Date.now();
+  deltaTime = (currentFrameTime - lastFrameTime) / 1000 * 60; // 60fps 기준
+  lastFrameTime = currentFrameTime;
+  
+  // deltaTime이 너무 크면 제한 (탭 전환 등으로 인한 큰 점프 방지)
+  if (deltaTime > 5) deltaTime = 1;
+  
   if (isPaused) {
     // 일시정지 상태일 때 PAUSE 텍스트 표시
     ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
@@ -1668,11 +1681,11 @@ function update() {
     lastEnemyShot = now;
   }
 
-  // 플레이어 이동 (십자 이동 허용)
-  if ((keys["ArrowLeft"] || keys["a"]) && player.x > 0) player.x -= player.speed;
-  if ((keys["ArrowRight"] || keys["d"]) && player.x + player.width < canvas.width) player.x += player.speed;
-  if ((keys["ArrowUp"] || keys["w"]) && player.y > 0) player.y -= player.speed;
-  if ((keys["ArrowDown"] || keys["s"]) && player.y + player.height < canvas.height) player.y += player.speed;
+  // 플레이어 이동 (십자 이동 허용) - deltaTime 적용
+  if ((keys["ArrowLeft"] || keys["a"]) && player.x > 0) player.x -= player.speed * deltaTime;
+  if ((keys["ArrowRight"] || keys["d"]) && player.x + player.width < canvas.width) player.x += player.speed * deltaTime;
+  if ((keys["ArrowUp"] || keys["w"]) && player.y > 0) player.y -= player.speed * deltaTime;
+  if ((keys["ArrowDown"] || keys["s"]) && player.y + player.height < canvas.height) player.y += player.speed * deltaTime;
 
   // 스페이스를 누르고 있으면 0.5초 간격으로 발사 (연속 발사 가능하지만 내부 쿨다운 적용)
   if (keys[" "]) {
@@ -1683,8 +1696,8 @@ function update() {
     }
   }
 
-  // 총알 이동
-  bullets.forEach(b => b.y -= b.speed);
+  // 총알 이동 - deltaTime 적용
+  bullets.forEach(b => b.y -= b.speed * deltaTime);
   bullets = bullets.filter(b => b.y > 0);
 
   // 무적 상태 업데이트 (깜빡임 효과)
@@ -1705,11 +1718,11 @@ function update() {
 
   // 적 이동 및 특수 능력 처리
   enemies.forEach(e => {
-    // 보스 전용 이동 (화면 상단 고정 + 좌우 이동)
+    // 보스 전용 이동 (화면 상단 고정 + 좌우 이동) - deltaTime 적용
     if (e.isBoss) {
       if (e.state === 'entering') {
         // 목표 위치까지 하강
-        e.y += e.speed * 2;
+        e.y += e.speed * 2 * deltaTime;
         if (e.y >= e.targetY) {
           e.y = e.targetY;
           e.state = 'hovering';
@@ -1717,7 +1730,7 @@ function update() {
         }
       } else if (e.state === 'hovering') {
         // 좌우 이동
-        e.x += e.moveDirection * e.speed;
+        e.x += e.moveDirection * e.speed * deltaTime;
         
         // 화면 경계 체크 (반대 방향으로 전환)
         if (e.x <= 0 || e.x >= canvas.width - e.width) {
@@ -1763,13 +1776,13 @@ function update() {
         }
       }
       
-      // 멈춰있지 않으면 이동
+      // 멈춰있지 않으면 이동 - deltaTime 적용
       if (!e.stopped) {
-        e.y += e.speed;
+        e.y += e.speed * deltaTime;
       }
     } else {
-      // 일반 이동
-      e.y += e.speed;
+      // 일반 이동 - deltaTime 적용
+      e.y += e.speed * deltaTime;
     }
     
     // 플레이어 충돌 처리 (히트박스 기준)
@@ -1879,9 +1892,9 @@ function update() {
     if (b.type === 'laser') {
       b.lifetime = (b.lifetime || 0) + 1;
       
-      // 레이저 길이 확장 (빠르게)
+      // 레이저 길이 확장 (빠르게) - deltaTime 적용
       if (b.currentLength < b.maxHeight) {
-        b.currentLength += b.expandSpeed;
+        b.currentLength += b.expandSpeed * deltaTime;
         b.height = Math.min(b.currentLength, b.maxHeight);
       }
       
@@ -1896,9 +1909,9 @@ function update() {
       
       // 레이저는 위치 이동 안 함
     } else {
-      // 일반 총알만 이동
-      b.x += b.speedX;
-      b.y += b.speedY;
+      // 일반 총알만 이동 - deltaTime 적용
+      b.x += b.speedX * deltaTime;
+      b.y += b.speedY * deltaTime;
     }
     
     // 플레이어 충돌 처리 (히트박스 기준)
