@@ -1208,17 +1208,24 @@ function fireBossGiantLaser(shooter) {
         x: laserX,
         y: shooter.y + shooter.height,
         width: laserWidth,
-        height: canvas.height,
+        height: 0,  // 초기 높이 0에서 시작
+        currentLength: 0,  // 현재 길이
+        maxHeight: canvas.height,  // 최대 높이
+        expandSpeed: 50,  // 확장 속도
         speedX: 0,
-        speedY: 15,  // 빠른 확장
+        speedY: 0,  // 레이저는 위치 이동 안 함
         damage: 2,  // 더 강력한 데미지
         type: 'laser',
         color: '#FF0000',
         alpha: 1,
-        isGiantLaser: true
+        isGiantLaser: true,
+        lifetime: 0,  // 생존 시간
+        maxLifetime: 60,  // 최대 생존 시간 (60프레임 = 약 1초)
+        angle: Math.PI / 2  // 수직 (아래쪽)
       });
       
       shooter.isChargingLaser = false;
+      shooter.laserWarningX = null;  // 경고 위치 초기화
     }
   }, 2000);
 }
@@ -1890,7 +1897,7 @@ function update() {
     
     // 레이저는 고정된 위치에서 확장 애니메이션 + 페이드 아웃
     if (b.type === 'laser') {
-      b.lifetime = (b.lifetime || 0) + 1;
+      b.lifetime = (b.lifetime || 0) + deltaTime;
       
       // 레이저 길이 확장 (빠르게) - deltaTime 적용
       if (b.currentLength < b.maxHeight) {
@@ -1900,7 +1907,7 @@ function update() {
       
       // 최대 생존 시간 도달 시 페이드 아웃
       if (b.lifetime > b.maxLifetime - 20) {
-        b.alpha -= 0.05;
+        b.alpha -= 0.05 * deltaTime;
       }
       
       if (b.lifetime > b.maxLifetime || b.alpha <= 0) {
